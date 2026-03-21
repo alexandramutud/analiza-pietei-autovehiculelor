@@ -1,0 +1,38 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.pkl
+*.pickle
+
+# --- Virtual environments ---
+venv/
+env/
+.venv/
+ENV/
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# If you want to keep some data, remove the extensions above.
+
+# --- Logs ---
+*.log
+
+# --- VS Code ---
+.vscode/
+
+# --- PyCharm / JetBrains ---
+.idea/
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+
+# --- Build / distribution ---
+build/
+dist/
+*.egg-info/
