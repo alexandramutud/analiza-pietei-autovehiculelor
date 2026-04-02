@@ -75,6 +75,24 @@ def encode_categorical_columns(df, columns, method='label', normalize_frequency=
 
     return df_copy, mappings
 
+def scale_data(df, columns, method='standard'):
+    """
+    Scalează coloanele numerice selectate folosind Standardizare (Z-score) sau Normalizare (Min-Max).
+    """
+    df_copy = df.copy()
+    for col in columns:
+        if method == 'standard':
+            mean_val = df_copy[col].mean()
+            std_val = df_copy[col].std()
+            if std_val != 0:
+                df_copy[col] = (df_copy[col] - mean_val) / std_val
+        elif method == 'minmax':
+            min_val = df_copy[col].min()
+            max_val = df_copy[col].max()
+            if max_val != min_val:
+                df_copy[col] = (df_copy[col] - min_val) / (max_val - min_val)
+    return df_copy
+
 st.title("Proiect PSW - Pachete Software")
 st.markdown(
     """
@@ -99,7 +117,7 @@ def func_incarcare_date_2023():
     return pd.read_csv(r"c:\Users\YAN\Desktop\PSW\Proiect PSW\Set de date\Set masini 2023.csv", low_memory=False)
 
 # Bara laterală pentru navigare între secțiuni
-section = st.sidebar.radio("Navigare secțiuni:", ["Introducere", "Setul de date", "Informații și Previzualizare", "Tratarea Valorilor Lipsă", "Encodare Variabile Categoriale", "Vizualizare și Analiză Grafică"])
+section = st.sidebar.radio("Navigare secțiuni:", ["Introducere", "Setul de date", "Informații și Previzualizare", "Tratarea Valorilor Lipsă", "Encodare Variabile Categoriale", "Normalizare și Standardizare", "Grupare și Agregare (Pivot)", "Vizualizare și Analiză Grafică"])
 
 # Buton de Reset în Sidebar
 st.sidebar.markdown("---")
@@ -231,7 +249,7 @@ elif section == "Tratarea Valorilor Lipsă":
                 st.rerun()
         else:
             st.success("✅ Toate coloanele rămase sunt bine populate.")
-            st.info("Curățarea radicală rămâne blocată până când apeși butonul de eliminare coloane fringe.")
+            st.session_state.cols_removed_40 = True # Putem debloca deoarece nu riscăm pierderea întregului set.
 
         st.markdown("#### Curățare radicală")
         if not st.session_state.cols_removed_40:
@@ -345,6 +363,152 @@ elif section == "Encodare Variabile Categoriale":
                 st.rerun()
         else:
             st.info("Selectează cel puțin o coloană categorială pentru a continua.")
+
+# ---------------------------
+# Secțiunea: Normalizare și Standardizare
+# ---------------------------
+elif section == "Normalizare și Standardizare":
+    st.header("Normalizare și Standardizare")
+    st.write("Aducerea variabilelor la o scară comună este esențială pentru majoritatea algoritmilor de învățare automată.")
+
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+    if not numeric_cols:
+        st.warning("⚠️ Nu s-au detectat coloane numerice pe care să le putem scala.")
+    else:
+        with st.expander("🎓 Învață despre scalare", expanded=True):
+            st.markdown("""
+- **Standardizarea (Z-score)**: Transformă datele astfel încât **Media = 0** și **Deviația Standard = 1**. Formula: `z = (x - mean) / std`. 
+- **Normalizarea (Min-Max)**: Transformă datele în intervalul fix **[0, 1]**. Formula: `x_norm = (x - min) / (max - min)`.
+            """)
+
+        st.subheader("Configurare")
+        
+        col_select_all = st.checkbox("Selectează toate coloanele numerice", value=False)
+        default_cols = numeric_cols if col_select_all else []
+        
+        selected_scale_cols = st.multiselect(
+            "Alege coloanele pentru scalare:",
+            numeric_cols,
+            default=default_cols
+        )
+
+        method_scale = st.radio(
+            "Alege metoda de scalare:",
+            ["Standardizare (Z-score)", "Normalizare (Min-Max)"],
+            horizontal=True
+        )
+
+        scale_method_key = "standard" if "Standardizare" in method_scale else "minmax"
+
+        if selected_scale_cols:
+            scaled_df = scale_data(df, selected_scale_cols, method=scale_method_key)
+            
+            st.markdown("---")
+            st.subheader("🔬 Verificare Statistică")
+            st.write("Comparație sumară (Înainte vs După) pentru a valida transformarea:")
+            
+            # Construim un tabel de verificare pentru prima coloană selectată ca exemplu
+            check_col = selected_scale_cols[0]
+            stats_compare = pd.DataFrame({
+                "Statistică": ["Minim", "Maxim", "Medie", "Std Dev"],
+                "Original": [df[check_col].min(), df[check_col].max(), df[check_col].mean(), df[check_col].std()],
+                "Scalat": [scaled_df[check_col].min(), scaled_df[check_col].max(), scaled_df[check_col].mean(), scaled_df[check_col].std()]
+            })
+            st.write(f"Exemplu pentru coloana: **{check_col}**")
+            st.table(stats_compare)
+
+            if st.button("🚀 Aplică scalarea pe setul de date", use_container_width=True):
+                st.session_state.df = scaled_df
+                st.success(f"Scalarea ({scale_method_key}) a fost aplicată cu succes!")
+                st.rerun()
+        else:
+            st.info("Selectează coloanele dorite pentru a vedea previzualizarea.")
+
+# ---------------------------
+# Secțiunea: Grupare și Agregare (Pivot)
+# ---------------------------
+elif section == "Grupare și Agregare (Pivot)":
+    st.header("Grupare și Agregare Date")
+    st.write("Folosește această secțiune pentru a obține statistici centralizate pe segmente (Pivot Table).")
+
+    categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+    if not categorical_cols:
+        st.warning("⚠️ Nu sunt coloane categoriale pentru grupare.")
+    elif not numeric_cols:
+        st.warning("⚠️ Nu sunt coloane numerice pentru agregare.")
+    else:
+        st.subheader("Configurare Pivot")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            group_by_col = st.selectbox("Grupare după (Categoria):", categorical_cols)
+        with col2:
+            agg_num_cols = st.multiselect("Coloane numerice pentru analiză:", numeric_cols, default=numeric_cols[:1])
+
+        st.markdown("---")
+        st.write("Alege funcțiile de agregare statistice:")
+        
+        c1, c2, c3, c4, c5 = st.columns(5)
+        with c1: f_mean = st.checkbox("Media", value=True)
+        with c2: f_median = st.checkbox("Mediana")
+        with c3: f_max = st.checkbox("Maximul")
+        with c4: f_min = st.checkbox("Minimul")
+        with c5: f_count = st.checkbox("Număr înregistrări", value=True)
+
+        agg_functions = []
+        if f_mean: agg_functions.append('mean')
+        if f_median: agg_functions.append('median')
+        if f_max: agg_functions.append('max')
+        if f_min: agg_functions.append('min')
+        if f_count: agg_functions.append('count')
+
+        if agg_num_cols and agg_functions:
+            # Calculăm tabelul pivot
+            pivot_table = df.groupby(group_by_col)[agg_num_cols].agg(agg_functions)
+            
+            # Curățăm un pic formatarea numelor coloanelor pentru lizibilitate
+            pivot_table.columns = ['_'.join(col).strip() for col in pivot_table.columns.values]
+            
+            st.markdown("### Tabel Centralizator")
+            st.dataframe(pivot_table)
+
+            # Vizualizare rapidă (îmbunătățită și dinamică)
+            available_metrics = [m for m in agg_functions if m in ['mean', 'median', 'max', 'min']]
+            if available_metrics and agg_num_cols:
+                metric_to_plot = available_metrics[0]
+                metric_label = {"mean": "Mediei", "median": "Mediană", "max": "Maximului", "min": "Minimului"}[metric_to_plot]
+                
+                st.markdown(f"### 📊 Reprezentare Vizuală a {metric_label}")
+                first_col = f"{agg_num_cols[0]}_{metric_to_plot}"
+                
+                if first_col in pivot_table.columns:
+                    plot_data = pivot_table[first_col].sort_values(ascending=False).head(15)
+                    
+                    fig, ax = plt.subplots(figsize=(16,10))
+                    sns.barplot(x=plot_data.index, y=plot_data.values, palette="viridis", ax=ax)
+                    plt.xticks(rotation=90, ha='center', fontweight='bold', fontsize=12)
+                    plt.title(f"Top 15 - {metric_label} {agg_num_cols[0]} pe fiecare {group_by_col}", fontsize=16, fontweight='bold')
+                    plt.ylabel(f"Valoare {metric_label} ({agg_num_cols[0]})", fontsize=13)
+                    plt.xlabel(group_by_col, fontsize=13)
+                    st.pyplot(fig)
+                    st.caption(f"Grafic generat automat pentru metricul: {metric_label}.")
+
+            # Descriere statistică detaliată
+            with st.expander("🔍 Ce s-a întâmplat în spate? (Explicație Tehnică)", expanded=True):
+                st.markdown(f"""
+                Procesul pe care tocmai l-ai executat se numește în Pandas **Split-Apply-Combine** (Împarte-Aplică-Combină):
+
+                1.  **Split (Împarțirea)**: Pandas a scanat coloana `{group_by_col}` și a creat grupuri virtuale. De exemplu, toate rândurile pentru 'BMW' au fost puse într-o listă separată de rândurile pentru 'Dacia'.
+                2.  **Apply (Aplicarea)**: Pentru fiecare grup în parte, s-au calculat funcțiile matematice alese ({', '.join(agg_functions)}) pe coloanele `{', '.join(agg_num_cols)}`. Această operație ignoră valorile `NaN` pentru a nu altera rezultatul.
+                3.  **Combine (Combinarea)**: Rezultatele de la fiecare grup au fost "lipite" la loc într-un singur tabel nou, unde indexul (rândurile) este acum categoria `{group_by_col}`.
+
+                **Interpretare**: 
+                - Dacă vezi o diferență mare între **Media** și **Mediana** unui grup, înseamnă că în acel grup ai *outliers* (mașini cu specificații care "trag" media în sus sau în jos în mod nefiresc).
+                - Coloana `count` (Număr înregistrări) îți spune cât de reprezentativ este grupul. Dacă un brand are doar 1 mașină, media lui nu este relevantă statistic pentru întreg brandul.
+                """)
 
 # ---------------------------
 # Secțiunea: Vizualizare și Analiză Grafică
