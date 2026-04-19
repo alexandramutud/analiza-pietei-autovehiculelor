@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import re
+from pathlib import Path
 
 def treat_missing_values(df, numeric_col=None, method='median', group_col=None, date_col=None):
     """
@@ -113,8 +113,9 @@ st.markdown('<h1 class="custom-title">Analiza Specificațiilor Auto 2023</h1>', 
 # Încărcare seturi de date folosind data caching
 @st.cache_data
 def func_incarcare_date_2023():
-    # Subsetul necurățat extras anterior din setul de 23k observații
-    return pd.read_csv(r"c:\Users\YAN\Desktop\PSW\Proiect PSW\Set de date\Set masini 2023.csv", low_memory=False)
+    base = Path(__file__).parent
+    data_file = base / "Set de date" / "Set masini 2023.csv"
+    return pd.read_csv(data_file, low_memory=False)
 
 # Bara laterală pentru navigare între secțiuni
 section = st.sidebar.radio("Navigare secțiuni:", ["Introducere", "Setul de date", "Informații și Previzualizare", "Tratarea Valorilor Lipsă", "Encodare Variabile Categoriale", "Normalizare și Standardizare", "Grupare și Agregare (Pivot)", "Vizualizare și Analiză Grafică"])
