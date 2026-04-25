@@ -4,7 +4,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import re
-
+import statsmodels.api as sm
+from sklearn.cluster import KMeans, AgglomerativeClustering
+from scipy.cluster.hierarchy import dendrogram, linkage
+from sklearn.metrics import silhouette_score, adjusted_rand_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 def treat_missing_values(df, numeric_col=None, method='median', group_col=None, date_col=None):
     """
     Funcție optimizată pentru tratarea valorilor lipsă și curățare.
@@ -93,6 +101,20 @@ def scale_data(df, columns, method='standard'):
                 df_copy[col] = (df_copy[col] - min_val) / (max_val - min_val)
     return df_copy
 
+def describe_correlation(r):
+    """
+    Returnează o descriere textuală a intensității corelației (Pearson).
+    """
+    r_abs = abs(r)
+    if r_abs >= 0.7:
+        return "puternică"
+    elif r_abs >= 0.4:
+        return "moderată"
+    elif r_abs >= 0.2:
+        return "slabă"
+    else:
+        return "neglijabilă"
+
 st.title("Proiect PSW - Pachete Software")
 st.markdown(
     """
@@ -117,7 +139,20 @@ def func_incarcare_date_2023():
     return pd.read_csv(r"c:\Users\YAN\Desktop\PSW\Proiect PSW\Set de date\Set masini 2023.csv", low_memory=False)
 
 # Bara laterală pentru navigare între secțiuni
-section = st.sidebar.radio("Navigare secțiuni:", ["Introducere", "Setul de date", "Informații și Previzualizare", "Tratarea Valorilor Lipsă", "Encodare Variabile Categoriale", "Normalizare și Standardizare", "Grupare și Agregare (Pivot)", "Vizualizare și Analiză Grafică"])
+section = st.sidebar.radio("Navigare secțiuni:", [
+    "Introducere", 
+    "Setul de date", 
+    "Informații și Previzualizare", 
+    "Tratare de Valori Lipsă și Aberante", 
+    "Encodare Variabile Categoriale", 
+    "Normalizare și Standardizare", 
+    "Grupare și Agregare (Pivot)", 
+    "Vizualizare și Analiză Grafică",
+    "Analiză Statistică (Regresie)",
+    "Clusterizare (K-Means)",
+    "Clusterizare (Ierarhică - HC)",
+    "Clasificare Predictivă (ML)"
+])
 
 # Buton de Reset în Sidebar
 st.sidebar.markdown("---")
@@ -218,8 +253,8 @@ elif section == "Informații și Previzualizare":
 # ---------------------------
 # Secțiunea: Tratarea Valorilor Lipsă
 # ---------------------------
-elif section == "Tratarea Valorilor Lipsă":
-    st.header("Tratarea Valorilor Lipsă")
+elif section == "Tratare de Valori Lipsă și Aberante":
+    st.header("Tratare de Valori Lipsă și Aberante")
     st.write("Asigură-te că datele sunt curate înainte de a trece la vizualizări complexe.")
 
     has_nans = df.isnull().values.any()
@@ -293,6 +328,32 @@ elif section == "Tratarea Valorilor Lipsă":
 
     else:
         st.success("✅ Felicitări! Nu mai există nicio valoare lipsă în setul de date.")
+
+    st.markdown("---")
+    st.subheader("Eliminare valori aberante (Outliers)")
+    st.caption("Regulă folosită: prag extins Tukey, cu limite [Q1 - 3×IQR, Q3 + 3×IQR]. Rândurile care conțin cel puțin o valoare aberantă numerică sunt eliminate din setul curent.")
+
+    numeric_cols_for_outliers = df.select_dtypes(include=[np.number]).columns.tolist()
+    if not numeric_cols_for_outliers:
+        st.info("Nu există coloane numerice pentru detectarea valorilor aberante.")
+    else:
+        if st.button("🚀 Elimină TOATE valorile aberante (3×IQR)", use_container_width=True):
+            df_work = st.session_state.df.copy()
+            numeric_df = df_work[numeric_cols_for_outliers]
+
+            q1 = numeric_df.quantile(0.25)
+            q3 = numeric_df.quantile(0.75)
+            iqr = q3 - q1
+
+            lower_bounds = q1 - 3 * iqr
+            upper_bounds = q3 + 3 * iqr
+
+            outlier_mask = ((numeric_df < lower_bounds) | (numeric_df > upper_bounds)).any(axis=1)
+            removed_rows = int(outlier_mask.sum())
+
+            st.session_state.df = df_work.loc[~outlier_mask].copy()
+            st.success(f"S-au eliminat {removed_rows} rânduri care conțineau cel puțin o valoare aberantă (3×IQR).")
+            st.rerun()
 
 # ---------------------------
 # Secțiunea: Encodare Variabile Categoriale
@@ -790,5 +851,508 @@ elif section == "Vizualizare și Analiză Grafică":
             else:
                 st.warning("Pentru acest tip de grafic este nevoie de cel puțin o coloană numerică și una categorială.")
 
-    st.markdown("---")
-    st.write("💡 *Notă: Orice curățare făcută anterior se reflectă aici.*")
+# ---------------------------
+# Secțiunea: Analiză Statistică (Regresie Multiplă)
+# ---------------------------
+elif section == "Analiză Statistică (Regresie)":
+    st.header("Analiză Statistică: Regresie Liniară Multiplă")
+    st.write("În această secțiune folosim modelarea statistică pentru a înțelege cum parametrii tehnici influențează consumul de combustibil.")
+
+    # Pregătirea datelor pentru regresie
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    # Target implicit: L/100km (Avg)
+    default_target = "L/100km (Avg)" if "L/100km (Avg)" in numeric_cols else (numeric_cols[0] if numeric_cols else None)
+    
+    if len(numeric_cols) < 2:
+        st.warning("⚠️ Ai nevoie de cel puțin 2 coloane numerice pentru a rula o regresie.")
+    else:
+        st.subheader("1. Configurare Model")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            target_var = st.selectbox("Variabila dependentă (Target - Y):", numeric_cols, index=numeric_cols.index(default_target) if default_target in numeric_cols else 0)
+        with col2:
+            potential_features = [c for c in numeric_cols if c != target_var]
+            selected_features = st.multiselect("Variabile independente (Predictori - X):", potential_features, default=potential_features[:4] if len(potential_features) >= 4 else potential_features)
+
+        if selected_features:
+            # Drop NAs for specifically selected columns
+            reg_data = df[selected_features + [target_var]].dropna()
+            
+            if reg_data.empty:
+                st.error("❌ Setul de date rezultat este gol după eliminarea valorilor lipsă. Verifică datele!")
+            else:
+                st.write(f"Modelul va fi antrenat pe **{len(reg_data)}** observații (după eliminarea rândurilor cu valori lipsă).")
+                
+                # --- Antrenare Model ---
+                X = reg_data[selected_features]
+                y = reg_data[target_var]
+                X = sm.add_constant(X) # Adăugăm interceptul (constanta)
+                
+                model = sm.OLS(y, X).fit()
+                
+                # --- Rezultate ---
+                st.subheader("2. Rezultatul Modelului (OLS Summary)")
+                st.text(str(model.summary()))
+                
+                # --- Interpretare ---
+                with st.expander("📝 Interpretarea Rezultatelor (Ghid Educațional)", expanded=True):
+                    st.markdown(f"""
+### Cum citim cifrele de mai sus?
+
+1.  **R-squared (Coeficientul de Determinare):** **{model.rsquared:.4f}**
+    *   *Semnificație:* Modelul explică aproximativ **{model.rsquared*100:.1f}%** din variația variabilei **{target_var}**. Cu cât e mai aproape de 1, cu atât modelul e mai precis.
+2.  **Coeficienți (coef):**
+    *   Arată cât de mult se modifică **{target_var}** la o creștere de o unitate a predictorului respectiv, menținând ceilalți factori constanți.
+    *   Dacă coeficientul este **pozitiv**, variabila crește target-ul. Dacă e **negativ**, îl scade.
+3.  **P-value (P>|t|):**
+    *   Dacă este sub **0.05**, variabila este **semnificativă statistic**. Dacă e peste 0.05, acea variabilă s-ar putea să nu aibă o influență reală în model.
+                    """)
+
+                # --- Calculator Interactiv ---
+                st.subheader(f"3. 🧮 Calculator de Predicție: {target_var}")
+                st.info("Introdu parametri personalizați mai jos pentru a vedea ce valoare estimează modelul:")
+                
+                input_data = {}
+                cols = st.columns(len(selected_features))
+                for i, feature in enumerate(selected_features):
+                    with cols[i % len(cols)]:
+                        min_v = float(df[feature].min())
+                        max_v = float(df[feature].max())
+                        mean_v = float(df[feature].mean())
+                        input_data[feature] = st.number_input(f"{feature}:", min_value=min_v, max_value=max_v, value=mean_v, key=f"pred_{feature}")
+                
+                # Predictie
+                input_df = pd.DataFrame([input_data])
+                # Adaugam constanta manual pentru predictie
+                input_df.insert(0, 'const', 1.0)
+                
+                try:
+                    prediction = model.predict(input_df)[0]
+                    st.success(f"Valoarea estimată pentru **{target_var}** este: **{prediction:.2f}**")
+                except Exception as e:
+                    st.error(f"Eroare la predicție: {e}")
+                
+                st.subheader("4. Analiza Reziduurilor și Performanței")
+                
+                c_p1, c_p2 = st.columns(2)
+                
+                with c_p1:
+                    st.write("**Distribuția erorilor (Reziduurilor)**")
+                    fig1, ax1 = plt.subplots()
+                    sns.histplot(model.resid, kde=True, ax=ax1, color="#e74c3c")
+                    st.pyplot(fig1)
+                    st.caption("Pentru un model bun, erorile ar trebui să fie distribuite normal în jurul valorii 0.")
+                
+                with c_p2:
+                    st.write("**Valori Reale vs Valori Predise**")
+                    y_pred_all = model.predict(X)
+                    fig2, ax2 = plt.subplots()
+                    sns.scatterplot(x=y, y=y_pred_all, alpha=0.5, ax=ax2)
+                    line_min = min(y.min(), y_pred_all.min())
+                    line_max = max(y.max(), y_pred_all.max())
+                    ax2.plot([line_min, line_max], [line_min, line_max], '--r', lw=2)
+                    plt.xlabel("Valoare Reală")
+                    plt.ylabel("Valoare Predisă")
+                    st.pyplot(fig2)
+                    st.caption("Cu cât punctele sunt mai aproape de linia roșie, cu atât modelul este mai precis.")
+
+        else:
+            st.info("Selectează variabilele independente (X) pentru a genera modelul.")
+
+# ---------------------------
+# Secțiunea: Clusterizare (K-Means)
+# ---------------------------
+elif section == "Clusterizare (K-Means)":
+    st.header("Algoritm de Machine Learning: K-Means Clustering")
+    st.write("Acest algoritm ne supervizat grupează mașinile cu profiluri tehnice similare fără a cunoaște etichetele inițiale (cum ar fi tipul caroseriei).")
+    
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    if len(numeric_cols) < 2:
+        st.warning("Ai nevoie de cel puțin 2 coloane numerice pentru a rula K-Means.")
+    else:
+        st.subheader("1. Selecția Variabilelor și Găsirea Numărului de Clustere ($k$)")
+        col_k1, col_k2 = st.columns(2)
+        with col_k1:
+            var_1 = st.selectbox("Alege variabila 1 (Axa X):", numeric_cols, index=0)
+        with col_k2:
+            default_idx2 = 1 if len(numeric_cols) > 1 else 0
+            var_2 = st.selectbox("Alege variabila 2 (Axa Y):", numeric_cols, index=default_idx2)
+
+        if var_1 != var_2:
+            # Preluăm setul și drop missing values
+            cluster_data = df[[var_1, var_2]].dropna()
+            
+            if len(cluster_data) > 10:
+                # Extragem valorile a la `kmeans.py`
+                X = cluster_data.values
+                
+                # Scalare cerută de procesul de clusterizare ML a la `kmeans.py`
+                scaler = StandardScaler()
+                X_scaled = scaler.fit_transform(X)
+                
+                if st.button("📈 Rulează Metoda Elbow (Inertia)"):
+                    with st.spinner("Se calculează the Elbow Method..."):
+                        wcss = []
+                        max_clusters = min(11, len(X_scaled))
+                        for i in range(1, max_clusters):
+                            kmeans_test = KMeans(n_clusters=i, init='k-means++', random_state=42)
+                            kmeans_test.fit(X_scaled)
+                            wcss.append(kmeans_test.inertia_)
+                        
+                        fig_elbow, ax_elbow = plt.subplots(figsize=(10, 5))
+                        sns.lineplot(x=range(1, max_clusters), y=wcss, marker='o', color='red', ax=ax_elbow)
+                        ax_elbow.set_title('The Elbow Method')
+                        ax_elbow.set_xlabel('Number of clusters')
+                        ax_elbow.set_ylabel('WCSS')
+                        st.pyplot(fig_elbow)
+                        st.info("💡 **SFAT:** Punctul de „cot” (unde curba devine mai plată) reprezintă de obicei numărul ideal de clustere.")
+                
+                st.subheader("2. Parametrizarea și Antrenarea Modelului")
+                n_clusters = st.slider("Alege numărul de clustere (K):", min_value=2, max_value=8, value=3)
+                
+                # Fitting K-Means to the dataset explicit
+                kmeans = KMeans(n_clusters=n_clusters, init='k-means++', random_state=42)
+                y_kmeans = kmeans.fit_predict(X_scaled)
+                
+                st.subheader("3. Vizualizarea Clusterelor")
+                # Vizualizare fix ca în `kmeans.py` dar adaptată general pentru culori
+                fig_c, ax_c = plt.subplots(figsize=(15, 7))
+                
+                colors = sns.color_palette("husl", n_clusters)
+                for i in range(n_clusters):
+                    sns.scatterplot(
+                        x=X_scaled[y_kmeans == i, 0], 
+                        y=X_scaled[y_kmeans == i, 1], 
+                        color=colors[i], 
+                        label=f'Cluster {i+1}', 
+                        s=50, 
+                        ax=ax_c
+                    )
+                
+                # Afisare centroizi
+                sns.scatterplot(
+                    x=kmeans.cluster_centers_[:, 0], 
+                    y=kmeans.cluster_centers_[:, 1], 
+                    color='red', 
+                    label='Centroids', 
+                    s=300, 
+                    marker='X', 
+                    ax=ax_c
+                )
+                
+                ax_c.grid(False)
+                ax_c.set_title('Clusters of cars (Scaled)')
+                ax_c.set_xlabel(f'{var_1} (Standardized)')
+                ax_c.set_ylabel(f'{var_2} (Standardized)')
+                plt.legend()
+                st.pyplot(fig_c)
+                
+                st.subheader("4. Evaluarea Modelului")
+                # Silhouette Score
+                sil_score = silhouette_score(X_scaled, y_kmeans)
+                st.success(f"**Silhouette Score:** **{sil_score:.4f}**")
+                
+                with st.expander("Ce înseamnă Silhouette Score?"):
+                    st.markdown("""
+- Măsoară cât de apropiat este un punct de clusterul său comparativ cu celelalte clustere (între `-1` și `1`).
+- **Aproape de 1:** Punctele sunt bine încadrate și delimitate clar față de clusterele vecine.
+- **Aproape de 0:** Punctele se află la granița dintre două clustere (overlap).
+- **Sub 0:** Punctele sunt cel mai probabil atribuite greșit.
+                    """)
+                    
+                # Afisare metru normal: Centri nescalați
+                cluster_data['Cluster'] = [f"Cluster {i+1}" for i in y_kmeans]
+                st.write(f"🚗 Profilul Mediilor pe fiecare Cluster ({var_1} vs {var_2}):")
+                profile_df = cluster_data.groupby('Cluster').mean()
+                st.dataframe(profile_df)
+                
+            else:
+                st.warning("Variabilele ridică un set de date prea mic (prea multe valori lipsă) pentru învățare.")
+        else:
+            st.error("Selectează două variabile distincte!")
+
+# ---------------------------
+# Secțiunea: Clusterizare (Ierarhică - HC)
+# ---------------------------
+elif section == "Clusterizare (Ierarhică - HC)":
+    st.header("Clusterizare Ierarhică (HC) - analiză reinterpretată")
+    st.write("Modelul grupează mașinile folosind doar două variabile numerice (fără etichete). Mai jos ai un flux orientat pe interpretare: separare, profiluri de cluster și comparație cu o etichetă reală.")
+
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+    if len(numeric_cols) < 2:
+        st.warning("Ai nevoie de cel puțin 2 coloane numerice pentru HC.")
+    else:
+        st.subheader("1. Configurare")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            var_1 = st.selectbox("Variabila 1 (X):", numeric_cols, index=0, key="hc_var1")
+        with c2:
+            default_idx2 = 1 if len(numeric_cols) > 1 else 0
+            var_2 = st.selectbox("Variabila 2 (Y):", numeric_cols, index=default_idx2, key="hc_var2")
+        with c3:
+            compare_options = ["(Fără comparație)"] + categorical_cols
+            default_cat = "Body style" if "Body style" in categorical_cols else compare_options[0]
+            cat_label = st.selectbox(
+                "Compară cu etichetă reală:",
+                compare_options,
+                index=compare_options.index(default_cat),
+                key="hc_cat"
+            )
+
+        c4, c5, c6 = st.columns(3)
+        with c4:
+            use_outlier_filter = st.checkbox("Filtru outliers 1.5×IQR", value=True, key="hc_use_iqr")
+        with c5:
+            dendro_sample = st.slider("Max puncte pentru dendrogramă", 300, 3000, 1200, step=100, key="hc_sample")
+        with c6:
+            k_hc = st.slider("Număr clustere (K)", 2, 8, 3, key="hc_k")
+
+        if var_1 == var_2:
+            st.error("Selectează două variabile numerice distincte.")
+        else:
+            cols_needed = [var_1, var_2] + ([] if cat_label == "(Fără comparație)" else [cat_label])
+            hc_data = df[cols_needed].dropna().copy()
+
+            if hc_data.empty or len(hc_data) < 15:
+                st.warning("Setul rezultat este prea mic după eliminarea valorilor lipsă. Alege alte variabile.")
+            else:
+                initial_n = len(hc_data)
+                if use_outlier_filter:
+                    q1 = hc_data[[var_1, var_2]].quantile(0.25)
+                    q3 = hc_data[[var_1, var_2]].quantile(0.75)
+                    iqr = q3 - q1
+                    lower = q1 - 1.5 * iqr
+                    upper = q3 + 1.5 * iqr
+                    inlier_mask = ~((hc_data[[var_1, var_2]] < lower) | (hc_data[[var_1, var_2]] > upper)).any(axis=1)
+                    hc_data = hc_data.loc[inlier_mask].copy()
+                    removed_outliers = initial_n - len(hc_data)
+                    st.info(f"Filtru IQR activ: {removed_outliers} observații eliminate, {len(hc_data)} observații rămase pentru model.")
+                else:
+                    st.info(f"Fără filtru outliers: modelul rulează pe {len(hc_data)} observații.")
+
+                if len(hc_data) < max(15, k_hc * 5):
+                    st.warning("Date insuficiente pentru un HC stabil cu K ales. Reduce K sau schimbă variabilele.")
+                else:
+                    scaler_hc = StandardScaler()
+                    X_scaled_hc = scaler_hc.fit_transform(hc_data[[var_1, var_2]].values)
+
+                    # Dendrograma e calculată pe eșantion pentru performanță, modelul final pe toate punctele.
+                    if len(hc_data) > dendro_sample:
+                        dendro_data = hc_data.sample(n=dendro_sample, random_state=42)
+                    else:
+                        dendro_data = hc_data.copy()
+
+                    X_scaled_dendro = scaler_hc.transform(dendro_data[[var_1, var_2]].values)
+
+                    st.subheader("2. Dendrogramă (Ward)")
+                    fig_dendro, ax_dendro = plt.subplots(figsize=(10, 5))
+                    linked = linkage(X_scaled_dendro, method="ward")
+                    
+                    # Cut the dendrogram colors exactly at the distance that forms K clusters
+                    cut_distance = linked[-k_hc, 2] if k_hc < len(linked) else 0
+                    
+                    dendrogram(linked, truncate_mode="lastp", p=30, color_threshold=cut_distance, ax=ax_dendro)
+                    ax_dendro.set_title(f"Dendrogramă HC - {var_1} vs {var_2} (Colorată pentru {k_hc} clustere)")
+                    ax_dendro.set_ylabel("Distanță de fuziune")
+                    st.pyplot(fig_dendro)
+                    st.caption("Salturile mari pe axa verticală sugerează tăieri naturale ale arborelui (valori candidate pentru K).")
+
+                    hc_model = AgglomerativeClustering(n_clusters=k_hc, metric="euclidean", linkage="ward")
+                    y_hc = hc_model.fit_predict(X_scaled_hc)
+
+                    hc_data["Cluster"] = [f"Cluster {i + 1}" for i in y_hc]
+                    hc_data["HC_X"] = X_scaled_hc[:, 0]
+                    hc_data["HC_Y"] = X_scaled_hc[:, 1]
+
+                    st.subheader("3. Vizualizare")
+                    v1, v2 = st.columns(2)
+                    with v1:
+                        st.write("**A. Clusterele calculate de model**")
+                        fig_hc, ax_hc = plt.subplots(figsize=(6, 5))
+                        sns.scatterplot(
+                            data=hc_data,
+                            x="HC_X",
+                            y="HC_Y",
+                            hue="Cluster",
+                            palette="Set2",
+                            s=40,
+                            alpha=0.7,
+                            ax=ax_hc
+                        )
+                        ax_hc.set_xlabel(f"{var_1} (standardizat)")
+                        ax_hc.set_ylabel(f"{var_2} (standardizat)")
+                        st.pyplot(fig_hc)
+
+                    with v2:
+                        if cat_label != "(Fără comparație)":
+                            st.write(f"**B. Eticheta reală: {cat_label}**")
+                            fig_true, ax_true = plt.subplots(figsize=(6, 5))
+                            top_real_cats = hc_data[cat_label].value_counts().nlargest(7).index
+                            plot_real_data = hc_data[hc_data[cat_label].isin(top_real_cats)]
+                            sns.scatterplot(
+                                data=plot_real_data,
+                                x="HC_X",
+                                y="HC_Y",
+                                hue=cat_label,
+                                palette="tab10",
+                                s=40,
+                                alpha=0.7,
+                                ax=ax_true
+                            )
+                            ax_true.set_xlabel(f"{var_1} (standardizat)")
+                            ax_true.set_ylabel(f"{var_2} (standardizat)")
+                            st.pyplot(fig_true)
+                        else:
+                            st.info("Nu ai selectat etichetă reală pentru comparație vizuală.")
+
+                    st.subheader("4. Interpretare")
+                    sil = silhouette_score(X_scaled_hc, y_hc)
+                    m1, m2, m3 = st.columns(3)
+                    with m1:
+                        st.metric("Observații folosite", f"{len(hc_data)}")
+                    with m2:
+                        st.metric("Silhouette", f"{sil:.3f}")
+
+                    ari_val = None
+                    purity_val = None
+                    if cat_label != "(Fără comparație)" and hc_data[cat_label].nunique() > 1:
+                        ari_val = adjusted_rand_score(hc_data[cat_label].astype(str), y_hc)
+                        ct_counts = pd.crosstab(hc_data["Cluster"], hc_data[cat_label])
+                        purity_val = (ct_counts.max(axis=1).sum() / ct_counts.values.sum()) * 100
+                        with m3:
+                            st.metric("Puritate globală", f"{purity_val:.1f}%")
+                    else:
+                        with m3:
+                            st.metric("Puritate globală", "N/A")
+
+                    size_df = hc_data["Cluster"].value_counts().sort_index().rename_axis("Cluster").reset_index(name="Număr")
+                    size_df["Proporție (%)"] = (size_df["Număr"] / len(hc_data) * 100).round(1)
+                    st.markdown("**Dimensiunea clusterelor**")
+                    st.dataframe(size_df, use_container_width=True)
+
+                    profile_df = hc_data.groupby("Cluster")[[var_1, var_2]].agg(["mean", "median"]).round(2)
+                    st.markdown(f"**Profil numeric pe clustere ({var_1}, {var_2})**")
+                    st.dataframe(profile_df, use_container_width=True)
+
+                    if cat_label != "(Fără comparație)":
+                        if ari_val is not None:
+                            st.info(f"💡 **OBSERVAȚIE - Scorul ARI: {ari_val:.3f}**\n\nAcest scor matematic (*Adjusted Rand Index*) arată cât de exact a intuit algoritmul etichetele reale din fabrică.\n* O valoare aproape de **1.0** înseamnă suprapunere perfectă (gruparea geometrică e identică cu cea din catalogul auto).\n* O valoare aproape de **0.0** indică o suprapunere slabă (categoriile puse de producător nu prea au legătură matematică cu selecția ta).")
+
+# ---------------------------
+# Secțiunea: Clasificare Predictivă (ML)
+# ---------------------------
+elif section == "Clasificare Predictivă (ML)":
+    st.header("Clasificare Predictivă (ML Supervizat)")
+    st.write("Acest modul antrenează algoritmi care învață să prezică o categorie (cum ar fi Segmentul sau Body Style) folosind fix atributele tehnice pe care i le oferi spre analiză.")
+    
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+    
+    if len(numeric_cols) < 1 or len(categorical_cols) < 1:
+        st.warning("E nevoie de coloane numerice și categoriale pentru funcționare.")
+    else:
+        st.subheader("Configurare Set de Date")
+        target_col = st.selectbox("Alege ce vrei să prezică algoritmul (Target Y):", categorical_cols, index=categorical_cols.index('Segment') if 'Segment' in categorical_cols else 0)
+        
+        default_features = ['Top Speed', 'Power(HP)', 'Width'] if 'Top Speed' in numeric_cols and 'Power(HP)' in numeric_cols and 'Width' in numeric_cols else numeric_cols[:2]
+        feature_cols = st.multiselect("Alege caracteristicile tehnice din care să învețe algoritmul (Features X):", numeric_cols, default=default_features)
+        
+        if len(feature_cols) >= 1:
+            # Curățăm doar rândurile lipsă de pe coloanele vizate folosind o funcție rapidă
+            ml_data = df[feature_cols + [target_col]].dropna()
+            
+            if len(ml_data) > 50:
+                X = ml_data[feature_cols].values
+                y = ml_data[target_col].values
+                
+                # Split pentru validare cruzată - 20% test
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+                
+                tab1, tab2 = st.tabs(["🌳 1. Arbori de Decizie (Interpretare)", "🌲🌲 2. Random Forest (Performanță)"])
+                
+                with tab1:
+                    st.markdown("### Arbore de Decizie (Analiza Logicii Algoritmice)")
+                    st.write("Acest model este extrem de transparent pentru mintea umană, deoarece ia decizii bazate pe ramuri logice secvențiale (Ex: Dacă e lat -> Dacă are cai putere -> Deduc că e SUV).")
+                    
+                    depth = st.slider("Alege Adâncimea Maximă a Arborelui Desenat:", 2, 10, 7) # Setați la 7 după cerința utilizator
+                    
+                    dt_model = DecisionTreeClassifier(max_depth=depth, random_state=42)
+                    dt_model.fit(X_train, y_train)
+                    
+                    y_pred_dt = dt_model.predict(X_test)
+                    acc_dt = accuracy_score(y_test, y_pred_dt)
+                    
+                    st.success(f"**Acuratețe de testare (Precizie strict pe date nevăzute)**: {acc_dt:.2%}")
+                    
+                    st.markdown("#### Schema Decizională a Modelului")
+                    fig_tree, ax_tree = plt.subplots(figsize=(24, 12))
+                    try:
+                        classes_str = [str(c) for c in dt_model.classes_]
+                        plot_tree(dt_model, feature_names=feature_cols, class_names=classes_str, filled=True, rounded=True, ax=ax_tree, fontsize=7)
+                        st.pyplot(fig_tree)
+                        st.caption("Fiecare 'cutie' arată condiția matematică folosită. Cutiile intens colorate jos înseamnă o predicție sigură și unică.")
+                    except Exception as e:
+                        st.error(f"Eroare la desenarea structurii (posibil format necorespunzător al stringurilor): {str(e)}")
+                        
+                with tab2:
+                    st.markdown("### Random Forest (Top Acuratețe)")
+                    st.write("În loc să deseneze 1 arbore, acesta antrenează în orb 100 de abori diferiți care 'votează' cel mai bun rezultat.")
+                    
+                    rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+                    rf_model.fit(X_train, y_train)
+                    
+                    y_pred_rf = rf_model.predict(X_test)
+                    acc_rf = accuracy_score(y_test, y_pred_rf)
+                    
+                    st.success(f"**Acuratețe de testare Random Forest**: {acc_rf:.2%}")
+                    
+                    st.markdown("#### Care Factor Contează Cel Mai Mult?")
+                    importances = rf_model.feature_importances_
+                    imp_df = pd.DataFrame({'Feature': feature_cols, 'Importance': importances}).sort_values(by='Importance', ascending=False)
+                    
+                    fig_imp, ax_imp = plt.subplots(figsize=(10, 6))
+                    sns.barplot(data=imp_df, x='Importance', y='Feature', palette='plasma', ax=ax_imp)
+                    ax_imp.set_title(f"Ponderea factorilor în predicția `{target_col}`")
+                    st.pyplot(fig_imp)
+                    st.caption(f"Graficul arată care din atribute (Lățime vs Putere etc.) afectează cel mai mult formațional clasa '{target_col}' în industria auto.")
+
+                    st.markdown("#### Matrice de confuzie")
+                    try:
+                        y_true_series = pd.Series(y_test).astype(str)
+                        y_pred_series = pd.Series(y_pred_rf).astype(str)
+                        all_labels = sorted(set(y_true_series).union(set(y_pred_series)))
+
+                        if len(all_labels) > 25:
+                            top_labels = y_true_series.value_counts().head(24).index.tolist()
+                            y_true_plot = y_true_series.where(y_true_series.isin(top_labels), "...")
+                            y_pred_plot = y_pred_series.where(y_pred_series.isin(top_labels), "...")
+                            labels_for_cm = top_labels + ["..."]
+                            st.info("Afișare limitată la 25 clase: primele 24 clase după frecvență + categoria '...'.")
+                        else:
+                            y_true_plot = y_true_series
+                            y_pred_plot = y_pred_series
+                            model_order = [str(lbl) for lbl in rf_model.classes_]
+                            labels_for_cm = [lbl for lbl in model_order if lbl in all_labels]
+
+                        cm = confusion_matrix(y_true_plot, y_pred_plot, labels=labels_for_cm)
+                        fig_cm, ax_cm = plt.subplots(figsize=(10, 7))
+                        sns.heatmap(cm, annot=True, fmt='d', cmap='OrRd', xticklabels=labels_for_cm, yticklabels=labels_for_cm, ax=ax_cm)
+                        ax_cm.set_ylabel("Adevăr (clasa reală din date)")
+                        ax_cm.set_xlabel("Predicție (clasa estimată de model)")
+                        st.pyplot(fig_cm)
+                        st.caption("Interpretare: pe diagonală sunt clasificările corecte (...); în afara diagonalei sunt confuziile modelului (...).")
+                    except Exception as e:
+                        st.warning("Prea multe categorii pentru a desena eficient heatmap-ul.")
+                            
+            else:
+                st.warning("Nu există destule rânduri de date valide în set. Te rog debifează niște predictori care conțin valori lipsă.")
+        else:
+            st.info("Alege cel puțin o variabilă pentru antrenament.")
+
+st.markdown("---")
+st.write("📊 *Notă: Orice curățare făcută anterior se reflectă aici.*")
