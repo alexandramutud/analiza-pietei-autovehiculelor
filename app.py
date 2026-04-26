@@ -11,6 +11,7 @@ from sklearn.metrics import silhouette_score, adjusted_rand_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 def treat_missing_values(df, numeric_col=None, method='median', group_col=None, date_col=None):
@@ -115,22 +116,47 @@ def describe_correlation(r):
     else:
         return "neglijabilă"
 
-st.title("Proiect PSW - Pachete Software")
+st.title("Pachete software - Analiza specificațiilor auto 2023")
 st.markdown(
     """
     <style>
-    .custom-title {
-        color: #F39C12;
-        font-size: 40px;
+    
+    h1 {
+        background: linear-gradient(to top, #5B2C6F, #2E86C1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800 !important;
+        font-size: 30px !important;
         text-align: center;
-        color: red !important;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f2f6;
+        margin-bottom: 25px !important;
+    }
+    h2 {
+        background: linear-gradient(to top right, #1A5276, #3498DB);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700 !important;
+        border-bottom: 1px solid #EAECEE;
+        width: 100%;
+        padding-bottom: 5px;
+        margin-top: 40px !important;
+        margin-bottom: 20px !important;
+    }
+    h3 {
+        background: linear-gradient(to top right, #2E86C1, #85C1E9);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 600 !important;
+        margin-top: 30px !important;
+        margin-bottom: 10px !important;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.markdown('<h1 class="custom-title">Analiza Specificațiilor Auto 2023</h1>', unsafe_allow_html=True)
+# Titlul a fost mutat sus in st.title
 
 # Încărcare seturi de date folosind data caching
 @st.cache_data
@@ -183,17 +209,39 @@ df = st.session_state.df
 if section == "Introducere":
     st.header("Despre Proiect")
     st.markdown("""
-        Acest proiect este o aplicație web interactivă dezvoltată în **Python cu Streamlit**, 
-        ce urmărește analiza pieței autovehiculelor, în anul 2023, pentru viitoare predicții,
-        informări sau grafice. Este destinată atât persoanelor fizice, care urmează
-        să achiziționeze un nou autovehicul, cât și firmelor de tip parc auto sau închirieri.
-        
-        ### Obiectivele Principale
-        - **Curățarea Datelor**: Tratarea valorilor lipsă folosind metode statistice (Medie, Mediană, Mod).
-        - **Vizualizare EDA**: Analiza distribuțiilor, corelațiilor și a valorilor extreme (outliers).
-        - **Persistență**: Stocarea modificărilor pe durata sesiunii pentru un flux continuu.
-        
-        Navigați folosind meniul din stânga pentru a explora mai departe!
+        ### Despre Proiect și Setul de Date
+        Acest proiect este o aplicație web interactivă de top, dezvoltată în **Python folosind Streamlit**, 
+        dedicată analizei amănunțite a specificațiilor tehnice ale pieței autovehiculelor din anul 2023.
+        Setul de date cuprinde informații detaliate (dimensiuni, performanță, capacități, motorizare etc.) 
+        pentru mii de modele lansate până în anul 2023, la nivel global. 
+        S-au aplicat operații precum: curățare de date lipsă și aberante, encodări, scalări,
+        analize statistice, pivotări și modele avansate de Machine Learning.
+
+        ### Importanța Analizei Pieței Auto
+        Această analiză transformă cifrele aride într-o poveste cu sens, 
+        oferind oricui o viziune clară asupra drumului pe care merită să pornească. 
+        Pentru cei care coordonează flote, ea devine un instrument de precizie care 
+        arată exact ce modele atrag publicul și aduc profit, eliminând orice urmă de ghicire. 
+        În același timp, cei care proiectează mașinile viitorului găsesc aici un reper esențial 
+        pentru a înțelege ce își dorește piața cu adevărat, de la forța motorului până 
+        la dimensiunile ideale pentru oraș. Chiar și pentru un simplu șofer, aceste date 
+        funcționează ca un ghid prietenos care traduce opțiunile complicate în alegeri sigure, 
+        ajutându-l să găsească echilibrul perfect între consum și confort pentru viața de zi 
+        cu zi.
+        ### Obiectivele Principale (Structura Aplicației)
+        Aplicația este divizată logic pentru a acoperi întreg ciclul de viață al analizei datelor. Puteți naviga folosind meniul din stânga prin următoarele secțiuni:
+        - **1. Introducere:** Prezentarea proiectului și a utilității sale practice.
+        - **2. Setul de date:** Contextul și dimensiunile setului analizat.
+        - **3. Informații și Previzualizare:** Explorarea brută și filtrarea dinamică a catalogului auto.
+        - **4. Tratare de Valori Lipsă și Aberante:** Eliminarea rândurilor corupte și a extremelor (Outliers) pentru stabilitate matematică.
+        - **5. Encodare Variabile Categoriale:** Transformarea textului (ex: Marca, Combustibil) în valori numerice.
+        - **6. Normalizare și Standardizare:** Aducerea variabilelor la o scară comună.
+        - **7. Grupare și Agregare (Pivot):** Extragerea statisticilor centralizate pe categorii de vehicule.
+        - **8. Vizualizare și Analiză Grafică:** Explorare vizuală (Histograme, Boxplot, Scatter, Heatmap etc.).
+        - **9. Analiză Statistică (Regresie):** Studiul regresiei multiple (OLS) pentru dependențe statistice.
+        - **10. Clusterizare (K-Means):** Gruparea nesupervizată a mașinilor similare în funcție de performanțe.
+        - **11. Clusterizare (Ierarhică - HC):** Identificarea dendrogramelor și relațiilor ierarhice din industrie.
+        - **12. Clasificare Predictivă (ML):** Antrenarea algoritmilor supervizați (Arbori, Random Forest, Regresie Logistică) pentru a prezice apartenența unei mașini noi la un anumit segment auto pe baza dimensiunilor și puterii.
         """)
 
 # ---------------------------
@@ -201,17 +249,32 @@ if section == "Introducere":
 # ---------------------------
 elif section == "Setul de date":
     st.header("Contextul Datelor")
-    st.write(f"""
-    Acest proiect utilizează un set de date complex filtrat pentru anul 2023.
-    În prezent, setul tău de lucru conține **{df.shape[0]}** rânduri și **{df.shape[1]}** coloane.
+    st.markdown(f"""
+    Acest proiect utilizează un set de date vast și detaliat, concentrat pe specificațiile autovehiculelor disponibile pe piață până în anul **2023**. Setul de date reprezintă o colecție tehnică extrem de valoroasă ce surprinde caracteristicile de bază, performanțele și dimensiunile modelelor auto la nivel global.
+
+    În prezent, setul de lucru activ pe care se desfășoară analiza conține **{df.shape[0]}** rânduri (reprezentând modele auto individuale) și **{df.shape[1]}** coloane (atribute tehnice și descriptive).
     
-    Elemente urmărite:
-    - `Company`, `Model`, `Segment`, `Fuel`
-    - Specificații engine (`Power(HP)`, `Torque(Nm)`, `Displacement`)
-    - Dimensiuni (`Length`, `Width`, `Height`, `Wheelbase`)
-    - Informații de performanță și eficiență.
+    ### Datele analizate se împart în 4 categorii majore:
+    
+    **1. Identificare și Clasificare:**
+    - **Marca și Modelul (`Company`, `Model`)**: Esențiale pentru compararea producătorilor auto și a cotelor de piață.
+    - **Segmentul Auto (`Segment`)**: Clasificarea mașinii (ex: SUV, Hatchback, Sedan, Coupe, Exotic). Această variabilă este crucială pentru a înțelege preferințele publicului.
+    - **Tipul de Combustibil (`Fuel`)**: Benzină, Motorină, Hibrid etc. – o informație cheie în contextul tranziției ecologice actuale.
+
+    **2. Inima Mașinii (Specificații Motor):**
+    - **Putere și Cuplu (`Power(HP)`, `Torque(Nm)`)**: Indicatorii principali ai performanței brute și ai capacității de tracțiune.
+    - **Cilindree (`Displacement`)**: Volumul motorului în centimetri cubi, un factor decisiv în politicile de taxare și eficiența termică.
+
+    **3. Arhitectură și Dimensiuni Fizice:**
+    - **Gabaritul (`Length`, `Width`, `Height`)**: Lățimea, lungimea și înălțimea dictează nu doar aspectul, ci și spațiul interior și manevrabilitatea urbană.
+    - **Ampatamentul (`Wheelbase`)**: Distanța dintre punți; un ampatament mare oferă un confort sporit pasagerilor.
+    - **Greutate și Utilitate (`Unladen Weight`, `Cargo Volume`)**: Masa mașinii și volumul portbagajului, detalii practice esențiale pentru familii sau flote comerciale.
+
+    **4. Performanță și Eficiență Economică:**
+    - **Dinamica (`Top Speed`, `Acceleration 0-100 kph`)**: Criterii de performanță pură, vitale pentru clienții din segmentele Sport/Premium.
+    - **Eficiența (`Combined mpg`, `Fuel capacity`)**: Consumul combinat și mărimea rezervorului ajută la calculul direct al costului de exploatare (cât de „scumpă” e mașina zi de zi).
     """)
-    st.info("Poți continua în secțiunea următoare pentru filtrare și previzualizare detaliată.")
+    st.info("💡 **Sfat:** Poți continua în secțiunea următoare pentru a explora vizual acest tabel prin filtre dinamice!")
 # Secțiunea: Informații și Previzualizare
 # ---------------------------
 elif section == "Informații și Previzualizare":
@@ -219,7 +282,7 @@ elif section == "Informații și Previzualizare":
     st.write(f"Setul curent de lucru conține **{df.shape[0]}** rânduri și **{df.shape[1]}** coloane.")
     
     st.subheader("Filtrare și Explorare")
-    st.write("Folosește filtrele de mai jos pentru a rafina datele afișate în tabel:")
+    st.write("Folosește filtrele de mai jos pentru a clasifica datele afișate în tabel:")
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -255,7 +318,9 @@ elif section == "Informații și Previzualizare":
 # ---------------------------
 elif section == "Tratare de Valori Lipsă și Aberante":
     st.header("Tratare de Valori Lipsă și Aberante")
-    st.write("Asigură-te că datele sunt curate înainte de a trece la vizualizări complexe.")
+    st.write("""Asigură-te că datele sunt curate înainte de a trece la vizualizări complexe. Le poți curăța automat prin
+                ștergerea coloanelor cu procent ridicat de valori lipsă, și apoi prin ștergerea rândurilor cu valori lipsă sau 
+                prin ștergerea manuală. """)
 
     has_nans = df.isnull().values.any()
 
@@ -287,6 +352,10 @@ elif section == "Tratare de Valori Lipsă și Aberante":
             st.session_state.cols_removed_40 = True # Putem debloca deoarece nu riscăm pierderea întregului set.
 
         st.markdown("#### Curățare radicală")
+        if 'dropna_msg' in st.session_state:
+            st.success(st.session_state['dropna_msg'])
+            del st.session_state['dropna_msg']
+            
         if not st.session_state.cols_removed_40:
             st.error("🔒 **Acțiune blocată**: Mai întâi trebuie să elimini coloanele aproape goale (Prag > 40%) pentru a nu goli tot setul de date!")
         else:
@@ -294,12 +363,12 @@ elif section == "Tratare de Valori Lipsă și Aberante":
             if st.button("🚀 ȘTERGE TOATE RÂNDURILE CU VALORI LIPSĂ", use_container_width=True):
                 old_len = len(st.session_state.df)
                 st.session_state.df = st.session_state.df.dropna()
-                st.success(f"Finalizat: {old_len - len(st.session_state.df)} rânduri eliminate.")
+                st.session_state['dropna_msg'] = f"Finalizat: {old_len - len(st.session_state.df)} rânduri eliminate."
                 st.rerun()
 
         st.markdown("---")
 
-        st.subheader("SAU... curățare manuală")
+        st.subheader("Sau ... curățare manuală")
 
         # Imputare
         st.markdown("#### Imputare valori (completare selectivă)")
@@ -318,12 +387,16 @@ elif section == "Tratare de Valori Lipsă și Aberante":
 
         # Eliminare rânduri specifice
         st.markdown("#### Eliminare rânduri specifice")
+        if 'dropcol_msg' in st.session_state:
+            st.success(st.session_state['dropcol_msg'])
+            del st.session_state['dropcol_msg']
+            
         row_col = st.selectbox("Șterge rândurile unde lipsește coloana:", ["Selectează"] + num_cols_with_nan, key="row_drop")
         if row_col != "Selectează":
             if st.button(f"🗑️ Șterge rândurile fără {row_col}", use_container_width=True):
                 old_len = len(st.session_state.df)
                 st.session_state.df = st.session_state.df.dropna(subset=[row_col])
-                st.success(f"S-au eliminat {old_len - len(st.session_state.df)} rânduri.")
+                st.session_state['dropcol_msg'] = f"S-au eliminat {old_len - len(st.session_state.df)} rânduri."
                 st.rerun()
 
     else:
@@ -331,7 +404,11 @@ elif section == "Tratare de Valori Lipsă și Aberante":
 
     st.markdown("---")
     st.subheader("Eliminare valori aberante (Outliers)")
-    st.caption("Regulă folosită: prag extins Tukey, cu limite [Q1 - 3×IQR, Q3 + 3×IQR]. Rândurile care conțin cel puțin o valoare aberantă numerică sunt eliminate din setul curent.")
+    if 'outlier_msg' in st.session_state:
+        st.success(st.session_state['outlier_msg'])
+        del st.session_state['outlier_msg']
+        
+    st.caption("Regulă folosită e pragul extins Tukey, cu limite [Q1 - 3×IQR, Q3 + 3×IQR]. Rândurile care conțin cel puțin o valoare aberantă numerică sunt eliminate din setul curent.")
 
     numeric_cols_for_outliers = df.select_dtypes(include=[np.number]).columns.tolist()
     if not numeric_cols_for_outliers:
@@ -352,7 +429,7 @@ elif section == "Tratare de Valori Lipsă și Aberante":
             removed_rows = int(outlier_mask.sum())
 
             st.session_state.df = df_work.loc[~outlier_mask].copy()
-            st.success(f"S-au eliminat {removed_rows} rânduri care conțineau cel puțin o valoare aberantă (3×IQR).")
+            st.session_state['outlier_msg'] = f"S-au eliminat {removed_rows} rânduri care conțineau cel puțin o valoare aberantă (3×IQR)."
             st.rerun()
 
 # ---------------------------
@@ -430,14 +507,14 @@ elif section == "Encodare Variabile Categoriale":
 # ---------------------------
 elif section == "Normalizare și Standardizare":
     st.header("Normalizare și Standardizare")
-    st.write("Aducerea variabilelor la o scară comună este esențială pentru majoritatea algoritmilor de învățare automată.")
+    st.write("Aducerea variabilelor la o scară comună este esențială pentru majoritatea algoritmilor de învățare automată (ML).")
 
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
 
     if not numeric_cols:
         st.warning("⚠️ Nu s-au detectat coloane numerice pe care să le putem scala.")
     else:
-        with st.expander("🎓 Învață despre scalare", expanded=True):
+        with st.expander("🎓 Scalarea cuprinde standardizarea și normalizarea. Deși în limbajul colocvial, termenii se substituiesc unul pe altul, în realitate sunt diferiți.", expanded=False):
             st.markdown("""
 - **Standardizarea (Z-score)**: Transformă datele astfel încât **Media = 0** și **Deviația Standard = 1**. Formula: `z = (x - mean) / std`. 
 - **Normalizarea (Min-Max)**: Transformă datele în intervalul fix **[0, 1]**. Formula: `x_norm = (x - min) / (max - min)`.
@@ -491,7 +568,7 @@ elif section == "Normalizare și Standardizare":
 # ---------------------------
 elif section == "Grupare și Agregare (Pivot)":
     st.header("Grupare și Agregare Date")
-    st.write("Folosește această secțiune pentru a obține statistici centralizate pe segmente (Pivot Table).")
+    st.write("Folosește această secțiune pentru a obține statistici centralizate pe grupe (Pivot Table).")
 
     categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
@@ -505,7 +582,7 @@ elif section == "Grupare și Agregare (Pivot)":
         
         col1, col2 = st.columns(2)
         with col1:
-            group_by_col = st.selectbox("Grupare după (Categoria):", categorical_cols)
+            group_by_col = st.selectbox("Grupare după:", categorical_cols)
         with col2:
             agg_num_cols = st.multiselect("Coloane numerice pentru analiză:", numeric_cols, default=numeric_cols[:1])
 
@@ -557,19 +634,8 @@ elif section == "Grupare și Agregare (Pivot)":
                     st.pyplot(fig)
                     st.caption(f"Grafic generat automat pentru metricul: {metric_label}.")
 
-            # Descriere statistică detaliată
-            with st.expander("🔍 Ce s-a întâmplat în spate? (Explicație Tehnică)", expanded=True):
-                st.markdown(f"""
-                Procesul pe care tocmai l-ai executat se numește în Pandas **Split-Apply-Combine** (Împarte-Aplică-Combină):
-
-                1.  **Split (Împarțirea)**: Pandas a scanat coloana `{group_by_col}` și a creat grupuri virtuale. De exemplu, toate rândurile pentru 'BMW' au fost puse într-o listă separată de rândurile pentru 'Dacia'.
-                2.  **Apply (Aplicarea)**: Pentru fiecare grup în parte, s-au calculat funcțiile matematice alese ({', '.join(agg_functions)}) pe coloanele `{', '.join(agg_num_cols)}`. Această operație ignoră valorile `NaN` pentru a nu altera rezultatul.
-                3.  **Combine (Combinarea)**: Rezultatele de la fiecare grup au fost "lipite" la loc într-un singur tabel nou, unde indexul (rândurile) este acum categoria `{group_by_col}`.
-
-                **Interpretare**: 
-                - Dacă vezi o diferență mare între **Media** și **Mediana** unui grup, înseamnă că în acel grup ai *outliers* (mașini cu specificații care "trag" media în sus sau în jos în mod nefiresc).
-                - Coloana `count` (Număr înregistrări) îți spune cât de reprezentativ este grupul. Dacă un brand are doar 1 mașină, media lui nu este relevantă statistic pentru întreg brandul.
-                """)
+           
+            
 
 # ---------------------------
 # Secțiunea: Vizualizare și Analiză Grafică
@@ -581,7 +647,7 @@ elif section == "Vizualizare și Analiză Grafică":
         st.error("❌ Eroare: Setul de date este gol!")
         st.info("Folosește butonul **RESETEAZĂ TOATE DATELE** din stânga.")
     else:
-        st.write("Explorează vizual proprietățile parcului auto 2023.")
+        st.write("Această secțiune explorează vizual proprietățile setului de date, oferind interpretări bazate pe grafice ale diverselor modele de mașini din ani de fabricație până în 2023")
 
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
@@ -631,8 +697,6 @@ elif section == "Vizualizare și Analiză Grafică":
                 sns.histplot(df[col_dist], bins=30, kde=False, color="#3498db", ax=ax[0])
                 sns.kdeplot(df[col_dist], fill=True, color="#e67e22", ax=ax[1])
                 st.pyplot(fig)
-                st.info("Ghid: Histograma arată frecvența, KDE arată densitatea probabilității.")
-
                 if not dist_series.empty:
                     mean_val = dist_series.mean()
                     median_val = dist_series.median()
@@ -645,13 +709,25 @@ elif section == "Vizualizare și Analiză Grafică":
                     else:
                         skew_text = "aproape simetrică"
 
-                    st.markdown("**Ce proces are loc:** Histogramă + KDE pentru evaluarea formei distribuției și a dispersiei.")
+                    
+                    # Interpretare logica in context auto pentru medie vs mediana
+                    if abs(mean_val - median_val) > std_val * 0.2:
+                        mean_vs_median_text = "Diferența notabilă dintre medie și mediană sugerează prezența unor modele 'extreme' care trag media într-o direcție, pe când mediana reprezintă mult mai bine autovehiculul 'de rând' sau 'tipic'."
+                    else:
+                        mean_vs_median_text = "Media și mediana sunt foarte apropiate, ceea ce înseamnă că piața este echilibrată, majoritatea mașinilor gravitând strâns în jurul acestui standard."
+
+                    # Interpretare logica pentru dispersie
+                    if std_val > mean_val * 0.3:
+                        std_text = "Această deviație mare indică o ofertă extrem de diversificată (opțiuni de la variante foarte slabe/mici până la variante de top/gigantice)."
+                    else:
+                        std_text = "O deviație relativ mică, sugerând o piață omogenă unde producătorii merg pe specificații testate, sigure, fără variații radicale."
+
                     st.markdown(
                         f"""
-**Ce indică outputul curent:**
-- Media: **{mean_val:.2f}**, mediana: **{median_val:.2f}**.
-- Dispersia (deviația standard): **{std_val:.2f}**.
-- Forma distribuției este **{skew_text}** (skewness = **{skew_val:.2f}**).
+**Interpretarea aplicată a pieței auto:**
+- **Standardul industriei (Media vs. Mediana):** Din punct de vedere matematic, media este **{mean_val:.2f}**, dar jumătatea pieței (mediana) se află de fapt la **{median_val:.2f}**. *{mean_vs_median_text}*
+- **Diversitatea ofertei (Dispersia):** Abaterea standard de **{std_val:.2f}** arată cât de largă este plaja de alegeri pe care le are un cumpărător. *{std_text}*
+- **Tendința de design (Forma distribuției):** Graficul are o formă **{skew_text}** (indice = **{skew_val:.2f}**). Practic, asta ne arată vizual dacă piața se focusează pe modele standard, tratând valorile extreme (ex. mașinile hyper-sport) ca pe nișe de lux, sau dacă există o distribuție echilibrată a producției.
 """
                     )
 
@@ -681,13 +757,17 @@ elif section == "Vizualizare și Analiză Grafică":
                     outliers = outlier_series[(outlier_series < lower_bound) | (outlier_series > upper_bound)]
                     outlier_pct = (len(outliers) / len(outlier_series)) * 100 if len(outlier_series) else 0
 
-                    st.markdown("**Ce proces are loc:** Boxplot-ul identifică variabilitatea centrală și valorile extreme pe baza regulii IQR.")
+                    if outlier_pct > 5:
+                        outlier_interp = "Avem un procent semnificativ de valori extreme. În piața auto, asta se traduce prin inovații sau modele de top (precum ediții limitate hyper-sport sau utilitare masive) care deviază mult de la vehiculele comune."
+                    else:
+                        outlier_interp = "Există puține excepții de la regulă, arătând că producătorii preferă să se încadreze în normele sigure, acceptate de majoritatea clienților."
+
                     st.markdown(
                         f"""
-**Ce indică outputul curent:**
-- Interval intercuartilic (IQR): **{iqr:.2f}**.
-- Prag inferior/superior outliers: **{lower_bound:.2f}** / **{upper_bound:.2f}**.
-- Număr outliers detectați: **{len(outliers)}** din **{len(outlier_series)}** observații (**{outlier_pct:.2f}%**).
+**Interpretarea aplicată a valorilor extreme (Outliers):**
+- **Intervalul de normalitate:** Matematic, limitele normalității sunt între **{lower_bound:.2f}** și **{upper_bound:.2f}**. Orice mașină care trece de aceste praguri este considerată un 'Outlier' – o excepție rară pe piață.
+- **Concentrarea competiției (IQR):** Jumătatea de mijloc a tuturor modelelor se încadrează într-o fereastră strânsă de doar **{iqr:.2f}** unități, arătându-ne plaja standard în care competiția între mărci este cea mai acerbă.
+- **Verdict piață:** S-au detectat **{len(outliers)}** mașini atipice din totalul de **{len(outlier_series)}** (**{outlier_pct:.2f}%**). *{outlier_interp}*
 """
                     )
 
@@ -713,13 +793,18 @@ elif section == "Vizualizare și Analiză Grafică":
                     corr_xy = rel_df[col_x].corr(rel_df[col_y])
                     relation_strength = describe_correlation(corr_xy)
                     trend = "directă" if corr_xy > 0 else "inversă"
-                    st.markdown("**Ce proces are loc:** Scatter plot-ul verifică dependența dintre două variabile și potențiale clustere.")
+                    if corr_xy > 0.6:
+                        rel_interp = f"O creștere a caracteristicii **{col_x}** atrage aproape garantat după sine o creștere pentru **{col_y}**."
+                    elif corr_xy < -0.6:
+                        rel_interp = f"Observăm un compromis clar tehnologic (trade-off): pe măsură ce **{col_x}** crește, **{col_y}** tinde să scadă puternic."
+                    else:
+                        rel_interp = f"Nu există o constrângere fizică clară care să lege direct **{col_x}** de **{col_y}**. Producătorii auto abordează aceste specificații independent."
+
                     st.markdown(
                         f"""
-**Ce indică outputul curent:**
-- Corelația Pearson dintre **{col_x}** și **{col_y}** este **{corr_xy:.2f}**.
-- Relația observată este **{relation_strength}** și **{trend}**.
-- Număr puncte analizate: **{len(rel_df)}**.
+**Interpretarea aplicată a corelației:**
+- **Natura relației:** Dinamica dintre cele două elemente este **{relation_strength}** și **{trend}** (Corelație r = **{corr_xy:.2f}**).
+- **Semnificație pentru industrie:** *{rel_interp}* Un inginer auto ar putea citi acest grafic pentru a vizualiza cum o alegere de design o influențază inevitabil pe alta.
 """
                     )
                     if col_color != "Fără" and col_color in rel_df.columns:
@@ -745,13 +830,12 @@ elif section == "Vizualizare și Analiză Grafică":
                         strongest_pos_val = corr_pairs.max()
                         strongest_neg_val = corr_pairs.min()
 
-                        st.markdown("**Ce proces are loc:** Se calculează corelațiile pereche pentru variabile numerice și se evidențiază intensitatea relațiilor.")
                         st.markdown(
                             f"""
-**Ce indică outputul curent:**
-- Cea mai puternică relație pozitivă: **{strongest_pos[0]} - {strongest_pos[1]}** (r = **{strongest_pos_val:.2f}**).
-- Cea mai puternică relație negativă: **{strongest_neg[0]} - {strongest_neg[1]}** (r = **{strongest_neg_val:.2f}**).
-- Aceste perechi sunt candidate bune pentru modelare predictivă sau reducere dimensională.
+**Interpretarea aplicată a matricii termice (Heatmap):**
+- **Sinergia tehnică absolută:** Cea mai puternică legătură pozitivă este între **{strongest_pos[0]}** și **{strongest_pos[1]}** (r = **{strongest_pos_val:.2f}**). În producția auto, aceste specificații cresc invariabil împreună. Reprezintă de cele mai multe ori limitări fizice pure (ex: motor mai mare -> greutate mai mare), nu simple decizii de design.
+- **Cel mai sever compromis:** Cea mai dură relație negativă este **{strongest_neg[0]}** vs. **{strongest_neg[1]}** (r = **{strongest_neg_val:.2f}**). Aici inginerii se luptă cu legile fizicii, deoarece accentuarea unuia dintre acești factori duce inevitabil la scăderea celuilalt (clasicul trade-off performanță vs. eficiență).
+- Pătrățelele în nuanțe pale reprezintă arii de inovație – variabile independente care oferă producătorilor libertatea de a inova fără restricții.
 """
                         )
 
@@ -773,35 +857,46 @@ elif section == "Vizualizare și Analiză Grafică":
                     top_share = (top_val / total_count) * 100 if total_count else 0
                     top3_share = (counts.head(3).sum() / total_count) * 100 if total_count else 0
 
-                    st.markdown("**Ce proces are loc:** Se compară frecvențele categoriilor pentru a identifica dominația și gradul de concentrare.")
+                    if top3_share > 70:
+                        monopoly_text = "Această variabilă arată o puternică monopolizare a pieței – constructorii preferă siguranța și se limitează la opțiunile dovedite a fi extrem de cerute."
+                    else:
+                        monopoly_text = "Piața pentru această caracteristică este foarte fragmentată, demonstrând că nu există o rețetă supremă a succesului, clienții având preferințe extrem de variate."
+
+                    unique_cats = len(df[col_cat_view].dropna().unique())
+                    if unique_cats > 3:
+                        tail_cats = unique_cats - 3
+                        tail_share = 100 - top3_share
+                        tail_text = f"Restul de **{tail_cats} variante** (dincolo de top 3) se luptă acerb pe o felie de piață de doar **{tail_share:.2f}%**. Acestea reprezintă de obicei *nișe de lux*, *proiecte experimentale* sau branduri exotice."
+                    else:
+                        tail_text = "Variabila este limitată strict la aceste top categorii, arătând un ecosistem auto închis, cu reguli clare."
+
                     st.markdown(
                         f"""
-**Ce indică outputul curent:**
-- Categoria dominantă este **{top_cat}** cu **{top_val}** observații (**{top_share:.2f}%**).
-- Primele 3 categorii cumulează **{top3_share:.2f}%** din total.
-- Dacă acest procent este ridicat, variabila este concentrată în puține categorii.
+**Interpretarea comportamentului de piață:**
+- **Standardul de necontestat:** Varianta **{top_cat}** acaparează de una singură **{top_share:.2f}%** din industria analizată (reprezentând **{top_val}** de modele). Aceasta este "alegerea sigură" a pieței și zona de confort financiar a oricărui producător.
+- **Gradul de concentrare (Top 3):** Cele mai populare 3 variante domină cumulat **{top3_share:.2f}%** din ofertă. *{monopoly_text}*
+- **Analiza Nișelor (Coada pieței):** {tail_text}
 """
                     )
 
         with tab6:
             st.subheader("Pair Plots")
             multi_cols = st.multiselect("Selectează (max 4):", numeric_cols, default=numeric_cols[:3])
-            if len(multi_cols) > 1 and st.button("🚀 Generează Matrix"):
+            if len(multi_cols) > 1 and st.button("Generează matrice"):
                 pair_df = df[multi_cols].dropna()
-                g = sns.pairplot(pair_df, diag_kind="kde", corner=True)
+                g = sns.pairplot(pair_df, diag_kind="kde", corner=False)
                 st.pyplot(g.fig)
 
                 pair_corr = pair_df.corr().where(~np.eye(len(multi_cols), dtype=bool)).stack()
                 if not pair_corr.empty:
                     best_pair = pair_corr.abs().idxmax()
                     best_pair_val = pair_df[[best_pair[0], best_pair[1]]].corr().iloc[0, 1]
-                    st.markdown("**Ce proces are loc:** Pair plot-ul oferă simultan distribuțiile univariate și relațiile bivariate dintre variabilele selectate.")
                     st.markdown(
                         f"""
-**Ce indică outputul curent:**
-- Cea mai puternică asociere din selecție este între **{best_pair[0]}** și **{best_pair[1]}**.
-- Corelația perechii este **{best_pair_val:.2f}** ({describe_correlation(best_pair_val)}).
-- Diagonala arată forma distribuțiilor, iar panourile din afara diagonalei arată tendințe și posibile clustere.
+**Imaginea de ansamblu (Tabloul de bord multidimensional):**
+- **Analiza densității:** Diagonala matricei evidențiază concentrarea ofertei din piață. Curbele de distribuție (KDE) arată clar unde se situează standardul de fabricație pentru majoritatea producătorilor.
+- **Sinergii dominante:** Dintre specificațiile selectate, cuplul **{best_pair[0]}** și **{best_pair[1]}** demonstrează cea mai mare interdependență (corelație r = **{best_pair_val:.2f}**). Aceasta sugerează o constrângere arhitecturală, unde modificarea unui element o forțează pe cealaltă.
+- **Identificarea spațiilor albe:** Intersecțiile goale din grafic sunt esențiale pentru strategie. Ele reprezintă combinații tehnice inexistente, indicând fie limite fizice/economice insurmontabile, fie oportunități de nișă încă neexploatate de competiție.
 """
                     )
 
@@ -839,13 +934,16 @@ elif section == "Vizualizare și Analiză Grafică":
                     iqr_by_cat = violin_df.groupby(violin_cat)[violin_num].quantile(0.75) - violin_df.groupby(violin_cat)[violin_num].quantile(0.25)
                     most_variable = iqr_by_cat.sort_values(ascending=False).index[0]
 
-                    st.markdown("**Ce proces are loc:** Violin plot compară simultan forma distribuției, medianele și dispersia pentru mai multe categorii.")
+                    least_variable = iqr_by_cat.sort_values(ascending=True).index[0]
+
                     st.markdown(
                         f"""
-**Ce indică outputul curent:**
-- Categoria cu mediana cea mai ridicată pentru **{violin_num}** este **{median_by_cat.index[0]}** ({median_by_cat.iloc[0]:.2f}).
-- Categoria cu cea mai mare variabilitate (IQR) este **{most_variable}** ({iqr_by_cat.loc[most_variable]:.2f}).
-- Graficul ajută la identificarea segmentelor unde valorile sunt concentrate sau foarte dispersate.
+**Interpretarea practică a graficului "Violin":**
+Acest grafic vizualizează "forma" pieței. Acolo unde forma este foarte lată (bombată), se află cea mai mare aglomerare de autovehicule.
+
+- **Standardul de top:** Analizând **{violin_num}**, observăm că segmentul **{median_by_cat.index[0]}** impune cel mai exigent standard pieței (cu o mediană centrală de **{median_by_cat.iloc[0]:.2f}**). Cumpărătorii de aici au așteptări de bază foarte ridicate.
+- **Piața fragmentată (Experimentare):** Categoria **{most_variable}** are cea mai alungită și neregulată formă (cel mai mare ecartament între valorile maxime și minime). Asta denotă inconsecvență: producătorii experimentează intens și lansează în această categorie modele cu dotări radical diferite.
+- **Piața standardizată (Conformitate):** La polul opus, categoria **{least_variable}** are cea mai subțire/comprimată formă. În acest segment, regulile sunt stricte și toți producătorii construiesc mașinile urmând exact aceeași rețetă tehnologică, evitând riscurile.
 """
                     )
             else:
@@ -855,7 +953,7 @@ elif section == "Vizualizare și Analiză Grafică":
 # Secțiunea: Analiză Statistică (Regresie Multiplă)
 # ---------------------------
 elif section == "Analiză Statistică (Regresie)":
-    st.header("Analiză Statistică: Regresie Liniară Multiplă")
+    st.header("Analiză Statistică: Regresie Liniară Simplă/Multiplă")
     st.write("În această secțiune folosim modelarea statistică pentru a înțelege cum parametrii tehnici influențează consumul de combustibil.")
 
     # Pregătirea datelor pentru regresie
@@ -897,10 +995,8 @@ elif section == "Analiză Statistică (Regresie)":
                 st.text(str(model.summary()))
                 
                 # --- Interpretare ---
-                with st.expander("📝 Interpretarea Rezultatelor (Ghid Educațional)", expanded=True):
+                with st.expander("📝 Interpretarea Rezultatelor", expanded=False):
                     st.markdown(f"""
-### Cum citim cifrele de mai sus?
-
 1.  **R-squared (Coeficientul de Determinare):** **{model.rsquared:.4f}**
     *   *Semnificație:* Modelul explică aproximativ **{model.rsquared*100:.1f}%** din variația variabilei **{target_var}**. Cu cât e mai aproape de 1, cu atât modelul e mai precis.
 2.  **Coeficienți (coef):**
@@ -1008,7 +1104,11 @@ elif section == "Clusterizare (K-Means)":
                         ax_elbow.set_xlabel('Number of clusters')
                         ax_elbow.set_ylabel('WCSS')
                         st.pyplot(fig_elbow)
-                        st.info("💡 **SFAT:** Punctul de „cot” (unde curba devine mai plată) reprezintă de obicei numărul ideal de clustere.")
+                        st.markdown("""
+- Acest grafic ne ajută să găsim "numărul natural" de grupuri din piață. 
+- Punctul de **„cot”** reprezintă momentul în care adăugarea unui nou grup nu mai aduce o îmbunătățire semnificativă a preciziei. 
+- În context auto, un "cot" la valoarea 3 ar putea sugera că piața se împarte fundamental în: *Ieftin/Eficienț*, *Mediu* și *Lux/Performanță*.
+""")
                 
                 st.subheader("2. Parametrizarea și Antrenarea Modelului")
                 n_clusters = st.slider("Alege numărul de clustere (K):", min_value=2, max_value=8, value=3)
@@ -1050,6 +1150,12 @@ elif section == "Clusterizare (K-Means)":
                 plt.legend()
                 st.pyplot(fig_c)
                 
+                st.markdown(f"""
+**Ce observăm pe harta clusterelor:**
+- **Punctele colorate:** Reprezintă mașinile grupate de algoritm. Cu cât sunt mai strâns grupate, cu atât acele mașini sunt mai similare între ele din perspectiva **{var_1}** și **{var_2}**.
+- **Centroizii (X roșu):** Aceștia reprezintă "mașina teoretică ideală" a acelui grup. Dacă vrei să lansezi un model nou care să concureze în Clusterul 1, specificațiile tale ar trebui să fie cât mai aproape de coordonatele acestui X.
+""")
+                
                 st.subheader("4. Evaluarea Modelului")
                 # Silhouette Score
                 sil_score = silhouette_score(X_scaled, y_kmeans)
@@ -1079,7 +1185,7 @@ elif section == "Clusterizare (K-Means)":
 # ---------------------------
 elif section == "Clusterizare (Ierarhică - HC)":
     st.header("Clusterizare Ierarhică (HC) - analiză reinterpretată")
-    st.write("Modelul grupează mașinile folosind doar două variabile numerice (fără etichete). Mai jos ai un flux orientat pe interpretare: separare, profiluri de cluster și comparație cu o etichetă reală.")
+    st.write("Modelul grupează mașinile folosind doar două variabile numerice (fără etichete) și compară cu o etichetă reală.")
 
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
@@ -1160,7 +1266,12 @@ elif section == "Clusterizare (Ierarhică - HC)":
                     ax_dendro.set_title(f"Dendrogramă HC - {var_1} vs {var_2} (Colorată pentru {k_hc} clustere)")
                     ax_dendro.set_ylabel("Distanță de fuziune")
                     st.pyplot(fig_dendro)
-                    st.caption("Salturile mari pe axa verticală sugerează tăieri naturale ale arborelui (valori candidate pentru K).")
+                    st.markdown(f"""
+
+- **Axa Verticală (Distanța):** Indică gradul de diferențiere. Cu cât două ramuri se unesc mai sus, cu atât mașinile din acele grupuri sunt mai diferite din punct de vedere tehnic (**{var_1}** vs **{var_2}**).
+- **Liniile Orizontale:** Reprezintă momentele de "fuziune". O linie lungă verticală indică o separare clară între segmentele de piață (de exemplu, o ruptură clară între utilitare și mașini sport).
+- **Tăierea arborelui:** Numărul de linii verticale pe care le intersectăm dacă tragem o linie orizontală imaginară ne spune în câte clustere am împărțit piața.
+""")
 
                     hc_model = AgglomerativeClustering(n_clusters=k_hc, metric="euclidean", linkage="ward")
                     y_hc = hc_model.fit_predict(X_scaled_hc)
@@ -1248,7 +1359,7 @@ elif section == "Clusterizare (Ierarhică - HC)":
 # ---------------------------
 elif section == "Clasificare Predictivă (ML)":
     st.header("Clasificare Predictivă (ML Supervizat)")
-    st.write("Acest modul antrenează algoritmi care învață să prezică o categorie (cum ar fi Segmentul sau Body Style) folosind fix atributele tehnice pe care i le oferi spre analiză.")
+    st.write("Acest modul antrenează algoritmi care învață să prezică o categorie (cum ar fi Segmentul sau Body Style) folosind fix atributele tehnice care i sunt oferite spre analiză.")
     
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
@@ -1273,7 +1384,7 @@ elif section == "Clasificare Predictivă (ML)":
                 # Split pentru validare cruzată - 20% test
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
                 
-                tab1, tab2 = st.tabs(["🌳 1. Arbori de Decizie (Interpretare)", "🌲🌲 2. Random Forest (Performanță)"])
+                tab1, tab2, tab3 = st.tabs(["🌳 1. Arbori de Decizie (Interpretare)", "🌲🌲 2. Random Forest (Performanță)", "⚖️ 3. Regresie Logistică (Șanse)"])
                 
                 with tab1:
                     st.markdown("### Arbore de Decizie (Analiza Logicii Algoritmice)")
@@ -1295,7 +1406,11 @@ elif section == "Clasificare Predictivă (ML)":
                         classes_str = [str(c) for c in dt_model.classes_]
                         plot_tree(dt_model, feature_names=feature_cols, class_names=classes_str, filled=True, rounded=True, ax=ax_tree, fontsize=7)
                         st.pyplot(fig_tree)
-                        st.caption("Fiecare 'cutie' arată condiția matematică folosită. Cutiile intens colorate jos înseamnă o predicție sigură și unică.")
+                        st.markdown("""
+1. **Punctul de pornire:** Algoritmul a analizat datele și a descoperit singur "întrebarea supremă" (afișată în prima cutie de sus). Acela este factorul absolut care clasifică binar cel mai bine piața auto!
+2. **Traseul (IF-THEN):** Fiecare cutie reprezintă o decizie tehnică. Dacă "adevărat", mergi pe ramura din stânga. Astfel, poți extrage "rețeta" pentru a construi un anumit tip de mașină, pas cu pas.
+3. **Frunzele finale:** Cutiile de jos, colorate intens, sunt predicții 100% sigure. Modelul ne arată practic logica pur matematică prin care industria împarte clasele de vehicule.
+""")
                     except Exception as e:
                         st.error(f"Eroare la desenarea structurii (posibil format necorespunzător al stringurilor): {str(e)}")
                         
@@ -1319,7 +1434,14 @@ elif section == "Clasificare Predictivă (ML)":
                     sns.barplot(data=imp_df, x='Importance', y='Feature', palette='plasma', ax=ax_imp)
                     ax_imp.set_title(f"Ponderea factorilor în predicția `{target_col}`")
                     st.pyplot(fig_imp)
-                    st.caption(f"Graficul arată care din atribute (Lățime vs Putere etc.) afectează cel mai mult formațional clasa '{target_col}' în industria auto.")
+                    
+                    top_feature = imp_df.iloc[0]['Feature']
+                    top_importance = imp_df.iloc[0]['Importance']
+                    st.markdown(f"""
+
+- **Cel mai puternic factor:** Algoritmul demonstrează clar că **{top_feature}** este detaliul tehnic cu cel mai mare impact (o pondere uriașă de **{top_importance:.1%}**) atunci când vrem să definim sau să prezicem **{target_col}**. În linii mari, producătorii definesc identitatea acestor clase auto în primul rând în funcție de caracteristica {top_feature}.
+- Dacă vrei să proiectezi un vehicul într-o anumită categorie, graficul de mai sus îți arată clar unde NU ai voie să faci compromisuri la design/costuri și unde ai mână liberă.
+""")
 
                     st.markdown("#### Matrice de confuzie")
                     try:
@@ -1345,9 +1467,113 @@ elif section == "Clasificare Predictivă (ML)":
                         ax_cm.set_ylabel("Adevăr (clasa reală din date)")
                         ax_cm.set_xlabel("Predicție (clasa estimată de model)")
                         st.pyplot(fig_cm)
-                        st.caption("Interpretare: pe diagonală sunt clasificările corecte (...); în afara diagonalei sunt confuziile modelului (...).")
+                        st.markdown("""
+
+- **Diagonala roșie:** Astea sunt "victoriile" modelului (ex: era SUV și algoritmul a confirmat că e SUV pe baza lățimii și greutății).
+- **Căsuțele din afara diagonalei (Confuziile):** Când modelul se păcălește constant (ex: clasifică un *Sedan* drept *Coupe*), acesta NU este neapărat un eșec al algoritmului, ci o revelație genială de business! Înseamnă că, tehnic vorbind, inginerii construiesc acele două clase pe aproape același șasiu / cu aceleași specificații. Acest lucru expune o "canibalizare" tehnologică între modelele de pe piață.
+""")
                     except Exception as e:
                         st.warning("Prea multe categorii pentru a desena eficient heatmap-ul.")
+                        
+                with tab3:
+                    st.markdown("### Regresie Logistică (Probabilități și Șanse)")
+                    st.write("Acest model folosește coeficienți matematici pentru a calcula o probabilitate procentuală a apartenenței unui autovehicul la un anumit grup.")
+                    
+                    # Scalare date - obligatoriu pentru Regresia Logistică pentru convergență bună
+                    scaler = StandardScaler()
+                    X_train_scaled = scaler.fit_transform(X_train)
+                    X_test_scaled = scaler.transform(X_test)
+                    
+                    lr_model = LogisticRegression(max_iter=1000, random_state=42)
+                    lr_model.fit(X_train_scaled, y_train)
+                    
+                    y_pred_lr = lr_model.predict(X_test_scaled)
+                    acc_lr = accuracy_score(y_test, y_pred_lr)
+                    
+                    st.success(f"**Acuratețe de testare Regresie Logistică**: {acc_lr:.2%}")
+                    
+                    st.markdown("#### Direcția de Influență a Specificațiilor (Coeficienți)")
+                    st.write("Spre deosebire de Random Forest, aici putem vedea **cum** influențează fiecare specificație. Valorile verzi (+) cresc probabilitatea ca mașina să aparțină de acea clasă, iar cele roșii (-) o scad.")
+                    
+                    try:
+                        coefs = lr_model.coef_
+                        classes = lr_model.classes_
+                        
+                        if len(classes) == 2:
+                            # Clasificare binară
+                            coef_df = pd.DataFrame({'Specificație': feature_cols, 'Coeficient': coefs[0]})
+                            coef_df = coef_df.sort_values(by='Coeficient', ascending=False)
+                            fig_coef, ax_coef = plt.subplots(figsize=(10, max(4, len(feature_cols)*0.5)))
+                            colors = ['#2ecc71' if c > 0 else '#e74c3c' for c in coef_df['Coeficient']]
+                            sns.barplot(x='Coeficient', y='Specificație', data=coef_df, palette=colors, ax=ax_coef)
+                            ax_coef.axvline(0, color='black', linewidth=1)
+                            st.pyplot(fig_coef)
+                        else:
+                            # Clasificare multiclasă -> Heatmap
+                            coef_df = pd.DataFrame(coefs, index=classes, columns=feature_cols)
+                            # Dacă sunt prea multe clase (ex. zeci de Marci), le limităm la top 10
+                            if len(classes) > 15:
+                                top_classes = pd.Series(y_train).value_counts().head(12).index.tolist()
+                                coef_df = coef_df.loc[[c for c in top_classes if c in coef_df.index]]
+                                st.info("Afișăm coeficienții doar pentru primele 12 cele mai frecvente clase.")
+                            
+                            fig_coef, ax_coef = plt.subplots(figsize=(10, max(4, len(coef_df)*0.6)))
+                            sns.heatmap(coef_df, cmap="RdYlGn", center=0, annot=True, fmt=".2f", cbar_kws={'label': 'Impact (Coeficient)'}, ax=ax_coef)
+                            ax_coef.set_ylabel("Clasa Prezisă")
+                            st.pyplot(fig_coef)
+                    except Exception as e:
+                        st.info("Nu am putut genera graficul coeficienților.")
+                        
+                    st.markdown("#### 🎛️ Simulator Live de Probabilități (What-If Analysis)")
+                    st.write("Modifică valorile de mai jos pentru a construi un autovehicul virtual. Modelul îți va calcula live șansele de apartenență la fiecare clasă (pe baza a ce a învățat anterior).")
+                    
+                    num_features = len(feature_cols)
+                    cols = st.columns(num_features if num_features <= 4 else 4)
+                    
+                    user_inputs = []
+                    for i, feature in enumerate(feature_cols):
+                        col_idx = i % 4
+                        with cols[col_idx]:
+                            min_val = float(ml_data[feature].min())
+                            max_val = float(ml_data[feature].max())
+                            mean_val = float(ml_data[feature].mean())
+                            step_val = (max_val - min_val) / 100 if max_val != min_val else 1.0
+                            val = st.slider(f"{feature}", min_value=min_val, max_value=max_val, value=mean_val, step=step_val, key=f"lr_slider_{feature}")
+                            user_inputs.append(val)
+                    
+                    # Predicție
+                    input_array = np.array([user_inputs])
+                    input_scaled = scaler.transform(input_array)
+                    
+                    try:
+                        probs = lr_model.predict_proba(input_scaled)[0]
+                        classes = lr_model.classes_
+                        
+                        prob_df = pd.DataFrame({'Clasa': classes, 'Probabilitate': probs})
+                        prob_df_sorted = prob_df.sort_values(by='Probabilitate', ascending=False)
+                        top_df = prob_df_sorted.head(4).copy()
+                        other_prob = prob_df_sorted.iloc[4:]['Probabilitate'].sum()
+                        
+                        if other_prob > 0.001:
+                            other_row = pd.DataFrame({'Clasa': ['Altele'], 'Probabilitate': [other_prob]})
+                            pie_df = pd.concat([top_df, other_row], ignore_index=True)
+                        else:
+                            pie_df = top_df
+                        
+                        fig_pie, ax_pie = plt.subplots(figsize=(5, 5))
+                        ax_pie.pie(pie_df['Probabilitate'], labels=pie_df['Clasa'], autopct='%1.1f%%', startangle=90, colors=sns.color_palette('pastel')[0:len(pie_df)])
+                        ax_pie.axis('equal')
+                        
+                        col1, col2 = st.columns([1, 1.5])
+                        with col1:
+                            st.write("**Predicția Finală a Modelului:**")
+                            st.markdown(f"<h3 style='color: #2e86c1; margin-top: 0px;'>{top_df.iloc[0]['Clasa']}</h3>", unsafe_allow_html=True)
+                            st.write("Probabilități calculate (Top 4):")
+                            st.dataframe(top_df.style.format({'Probabilitate': '{:.1%}'}))
+                        with col2:
+                            st.pyplot(fig_pie)
+                    except Exception as e:
+                        st.info("Predicțiile probabilistice nu sunt momentan disponibile pentru modelul curent.")
                             
             else:
                 st.warning("Nu există destule rânduri de date valide în set. Te rog debifează niște predictori care conțin valori lipsă.")
@@ -1355,4 +1581,4 @@ elif section == "Clasificare Predictivă (ML)":
             st.info("Alege cel puțin o variabilă pentru antrenament.")
 
 st.markdown("---")
-st.write("📊 *Notă: Orice curățare făcută anterior se reflectă aici.*")
+st.info("Notă: Orice modificare pe setul de date făcută într-o secțiune devine vizibilă în toate.", icon="💡")
