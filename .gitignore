@@ -1,4 +1,19 @@
 .venv/
+ENV/
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# If you want to keep some data, remove the extensions above.
+
+# --- Logs ---
+*.log
+
+# --- VS Code ---
+.vscode/
+
+# --- PyCharm / JetBrains ---
 .idea/
 __pycache__/
 *.pyc
